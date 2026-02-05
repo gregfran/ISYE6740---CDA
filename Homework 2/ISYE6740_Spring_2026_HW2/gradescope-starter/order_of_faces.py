@@ -1,5 +1,7 @@
-from pca import PCA
+from sklearn.decomposition import PCA as skpca
 import numpy as np
+from scipy.io import loadmat
+import os
 
 # -----------------------------------------------------------------------------
 # NOTE: Do not change the parameters / return types for pre defined methods.
@@ -39,7 +41,11 @@ class OrderOfFaces:
         images_path : str
             Path to the .mat file containing the facial images dataset.
         """
-        raise NotImplementedError("Not Implemented")
+
+        self.images_path = images_path
+        self.data = self.load_data()
+        self.process_data(self.data)
+        # raise NotImplementedError("Not Implemented")
 
     def get_adjacency_matrix(self, epsilon: float) -> np.ndarray:
         """
@@ -100,3 +106,30 @@ class OrderOfFaces:
             A (m x num_dim) array representing the dataset in a reduced PCA space.
         """
         raise NotImplementedError("Not Implemented")
+    
+    def load_data(self):
+        data = loadmat(self.images_path)
+        return data
+    
+    def process_data(self, data):
+        # shape info to better understand what the data looks like 
+        for k, v in data.items():
+            if hasattr(v, "shape"):
+                print(f"{k} shape={v.shape}, dtype={v.dtype}")
+            else:
+                print(f"{k} type={type(v)}")
+        
+        # process the matrix
+        for k in data.keys():
+            print(k)
+        # orig shape is (4096, 698), need to transpose
+        images = data['images'].T  # shape now (698, 4096)
+
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+    OrderOfFaces()
+
+
+if __name__ == "__main__":
+    main()
