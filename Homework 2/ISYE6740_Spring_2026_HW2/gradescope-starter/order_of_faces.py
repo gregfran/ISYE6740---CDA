@@ -2,6 +2,9 @@ from sklearn.decomposition import PCA as skpca
 import numpy as np
 from scipy.io import loadmat
 import os
+from scipy.spatial.distance import cdist # to easily calc euc dists
+from scipy.sparse.csgraph import shortest_path # for graph distances
+
 
 # -----------------------------------------------------------------------------
 # NOTE: Do not change the parameters / return types for pre defined methods.
@@ -45,7 +48,9 @@ class OrderOfFaces:
         self.images_path = images_path
         self.data = self.load_data()
         self.process_data(self.data)
-        # raise NotImplementedError("Not Implemented")
+        # calc dists now for reuse
+        self.euc_dists = cdist(self.data, self.data, metric='euclidean')
+
 
     def get_adjacency_matrix(self, epsilon: float) -> np.ndarray:
         """
@@ -62,9 +67,14 @@ class OrderOfFaces:
             A 2D adjacency matrix (m x m) where each entry represents distance between
             neighbors within the epsilon threshold.
         """
-        raise NotImplementedError("Not Implemented")
+        # calc pairwise distances (euclidean) for best epsilon
+        euc_dists = self.euc_dists
+        adj_matrix = euc_dists.copy()
+        # zero out distances greater than eps
+        adj_matrix = np.where(adj_matrix <= epsilon, adj_matrix, 0)
+        return adj_matrix
 
-    def get_best_epsilon(self) -> float:
+    def get_best_epsilon(self, eps) -> float:
         """
         Heuristically determines the best epsilon value for graph connectivity in ISOMAP.
 
@@ -73,7 +83,16 @@ class OrderOfFaces:
         float
             Optimal epsilon value ensuring a well-connected neighborhood graph.
         """
-        raise NotImplementedError("Not Implemented")
+        euc_dists = self.euc_dists
+
+        # rolling through eps options for all unique distances greater than 0
+        # by using actual distance values connectivity should be better than random/arb values
+        for eps in np.sort(np.unique(euc_dists[euc_dists > 0])):
+            adj_matrix = self.get_adjacency_matrix(eps)
+            # get shortest graphs distances (edge paths)
+            g_dists = shortest_path(adj_matrix, directed=False)
+        return eps
+
 
     def isomap(self, epsilon: float) -> np.ndarray:
         """
@@ -128,7 +147,15 @@ class OrderOfFaces:
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
-    OrderOfFaces()
+
+    # algo class call
+    order_of_faces = OrderOfFaces()
+
+    # find best epsilon
+    best_eps = order_of_faces.get_best_epsilon()
+
+    # ISOMAP algo
+    iso_map = order_of_faces.isomap(best_eps)
 
 
 if __name__ == "__main__":
