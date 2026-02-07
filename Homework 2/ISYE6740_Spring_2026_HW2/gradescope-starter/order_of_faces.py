@@ -46,8 +46,8 @@ class OrderOfFaces:
         """
 
         self.images_path = images_path
-        self.data = self.load_data()
-        self.process_data(self.data)
+        mat_data = self.load_data()
+        self.data = self.process_data(mat_data)
         # calc dists now for reuse
         self.euc_dists = cdist(self.data, self.data, metric='euclidean')
 
@@ -108,7 +108,51 @@ class OrderOfFaces:
         np.ndarray
             A (m x 2) array where each row is a 2D embedding of the original data point.
         """
-        raise NotImplementedError("Not Implemented")
+        """
+        Per lecture slides I need to:
+        Key idea: produce low dimensional representation which preserves “walkingdistance”
+        over the data cloud (manifold)
+
+        Find neighbors N^i of each data point, x^i, within distance eps and let A
+        be the adjacency matrix recording neighbor Euclidean distance
+        
+        Find shortest path distance matrix D between each pairs of points, x^i
+        and x^j, based on A
+
+        Find low dimensional representation which preserves the distances
+        information in D
+        """
+        # step 1: build weighted graph A using nearest neighbors
+        # aka adjacency matrix
+        adj_matrix = self.get_adjacency_matrix(epsilon)
+
+        # step 2: get shortest pairwise distances matrix D
+        D = shortest_path(adj_matrix, directed=False)
+        D_2 = D ** 2
+
+        # step 3: use centering matrix H to get C
+        # H = I - (1/m) * 11^T, 11^T is outer prod of 1s vector
+        m = D.shape[0]
+        H = np.eye(m) - (1/m) * np.ones((m, m))
+        # C = -0.5 * H * D^2 * H for centering matrix 
+        C = -0.5 * H @ D_2 @ H
+
+        # step 4: compute leading eigen vectors and eigen values of C
+        eigvals, eigvecs = np.linalg.eigh(C)  # sym matrix so use eigh
+
+        # step 4.5: arrange for leading eigen vecs and vals first
+        # desceding
+        idx = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[idx][:2] # get the top 2
+        eigvecs = eigvecs[:, idx][:, :2] # get the top 2
+
+        # step 5: get low dim representation
+        # in final step of ISOMAP slide, the reduced rep shows sqrt of a diagonal eigval matrix
+        L = np.diag(np.sqrt(eigvals))
+        # multuply eigvecs by L to get final 2D rep
+        X = eigvecs @ L  # 2 eigvecs by diag matrix of 2 eigvals
+
+        return X # note that this was done with the top 2 leading eigvecs and vals
 
     def pca(self, num_dim: int) -> np.ndarray:
         """
@@ -143,6 +187,8 @@ class OrderOfFaces:
             print(k)
         # orig shape is (4096, 698), need to transpose
         images = data['images'].T  # shape now (698, 4096)
+
+        return images
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
