@@ -50,6 +50,7 @@ class OrderOfFaces:
         self.data = self.process_data(mat_data)
         # calc dists now for reuse
         self.euc_dists = cdist(self.data, self.data, metric='euclidean')
+        self.best_eps = self.get_best_epsilon()
 
 
     def get_adjacency_matrix(self, epsilon: float) -> np.ndarray:
@@ -74,7 +75,7 @@ class OrderOfFaces:
         adj_matrix = np.where(adj_matrix <= epsilon, adj_matrix, 0)
         return adj_matrix
 
-    def get_best_epsilon(self, eps) -> float:
+    def get_best_epsilon(self) -> float:
         """
         Heuristically determines the best epsilon value for graph connectivity in ISOMAP.
 
@@ -87,12 +88,18 @@ class OrderOfFaces:
 
         # rolling through eps options for all unique distances greater than 0
         # by using actual distance values connectivity should be better than random/arb values
-        for eps in np.sort(np.unique(euc_dists[euc_dists > 0])):
+        # office hours says eps is likely between 1 and 20, so i'll narrow the search around this.
+        likely_eps = np.linspace(1, 30, 30)
+
+        for eps in likely_eps:
             adj_matrix = self.get_adjacency_matrix(eps)
             # get shortest graphs distances (edge paths)
             g_dists = shortest_path(adj_matrix, directed=False)
-        return eps
-
+            if np.isfinite(g_dists).all():
+                return eps
+            else:
+                print("failed to find eps")
+                continue
 
     def isomap(self, epsilon: float) -> np.ndarray:
         """
@@ -168,7 +175,11 @@ class OrderOfFaces:
         np.ndarray
             A (m x num_dim) array representing the dataset in a reduced PCA space.
         """
-        raise NotImplementedError("Not Implemented")
+        # scikit PCA
+        pca_algo = skpca(n_components=num_dim)
+        # scikit PCA fit transform and assignment
+        pca_result = pca_algo.fit_transform(self.data)
+        return pca_result
     
     def load_data(self):
         data = loadmat(self.images_path)
@@ -198,11 +209,15 @@ def main():
     order_of_faces = OrderOfFaces()
 
     # find best epsilon
-    best_eps = order_of_faces.get_best_epsilon()
+    best_eps = order_of_faces.best_eps
 
     # ISOMAP algo
     iso_map = order_of_faces.isomap(best_eps)
 
+    # PCA algo call
+    # only 2 dimensions per 3.3, aligns with the ISOMAP impl for comparison later
+    no_of_dims = 2
+    pca_result = order_of_faces.pca(num_dim=no_of_dims)
 
 if __name__ == "__main__":
     main()
