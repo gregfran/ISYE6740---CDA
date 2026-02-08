@@ -165,7 +165,13 @@ class EigenFaces:
 
     def img_ds(self, img_arr, factor=4):
         # downsample by factor
-        return img_arr[::factor, ::factor] # downsample by only taking every factor-th pixel
+        # gradescope is giving me issues due to the size
+        # my downsampling method is (6, 61, 80) and should be (6, 60, 80)
+        h, w = img_arr.shape
+        h_ds = h // factor # floor divisions
+        w_ds = w // factor
+        # limit downsample to new dimension targets
+        return img_arr[:h_ds*factor:factor, :w_ds*factor:factor] # downsample by only taking every factor-th pixel
 
     def run(self) -> EigenFacesResult:
         """
