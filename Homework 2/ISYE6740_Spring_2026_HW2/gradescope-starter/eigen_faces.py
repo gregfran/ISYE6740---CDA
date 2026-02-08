@@ -86,12 +86,35 @@ class EigenFaces:
         self.subject_2_tr_images = self.load_data(2)
 
         # load the test images for each subject
-        self.subject_1_te_image = self.load_data(1, test=True)
-        self.subject_2_te_image = self.load_data(2, test=True)
+        self.subject_1_te_image = self.load_data(1, is_test=True)
+        self.subject_2_te_image = self.load_data(2, is_test=True)
 
-    def calc_eigenfaces():
+    def calc_eigenfaces(self, imgs, eigs=6):
+        # dimensions
+        n_imgs, h, w = imgs.shape
 
-        return
+        # img to vectors
+        img_vecs = imgs.reshape(n_imgs, h*w)
+
+        # avg face
+        avg_face = np.mean(img_vecs, axis=0)
+
+        # center data
+        img_vecs_centered = img_vecs - avg_face
+
+        # calc C (covariance matrix)
+        C = np.cov(img_vecs_centered, rowvar=False)
+
+        # get eigenvals and vecs from C
+        eigenvals, eigenvecs = np.linalg.eigh(C)
+
+        # get top eigenfaces
+        idx = np.argsort(eigenvals)[::-1][:eigs]
+        top_eigenvecs = eigenvecs[:, idx]
+
+        eigenfaces = top_eigenvecs.T.reshape(eigs, h, w)
+
+        return eigenfaces, avg_face, top_eigenvecs.T
     
     def load_data(self, subject_no, is_test=False):
         img_dir = self.img_dir
@@ -101,7 +124,7 @@ class EigenFaces:
         for subj in os.listdir(img_dir):
             # if binary is false, load train images
             if not is_test:
-                if subj.contains(f"subject{str(subject_no).zfill(2)}") and not subj.contains("test"):
+                if (f"subject{str(subject_no).zfill(2)}") in subj and not "test" in subj:
                     subj_path = os.path.join(img_dir, subj)
                     img = Image.open(subj_path).convert('L')
                     img_arr = np.array(img)
@@ -110,15 +133,35 @@ class EigenFaces:
 
             # if binary is true, load test image
             else:
-                if subj.contains(f"subject{str(subject_no).zfill(2)}") and subj.contains("test"):
+                if (f"subject{str(subject_no).zfill(2)}") in subj and "test" in subj:
                     subj_path = os.path.join(img_dir, subj)
                     img = Image.open(subj_path).convert('L')
                     img_arr = np.array(img)
                     img_arr_ds = self.img_ds(img_arr)
                     return img_arr_ds
             
-            return np.array(imgs)
+        return np.array(imgs)
+        
+    def proj_res(self, test_img, eigenvecs, avg_face):
 
+        # test img vectorization
+        test_vec = test_img.flatten()
+        avg_vec = avg_face.flatten()
+
+        # center test img
+        test_vec_centered = test_vec - avg_vec
+
+        # projection
+        proj = np.zeros_like(test_vec_centered)
+
+        for e in eigenvecs:
+            coeff = np.dot(test_vec_centered, e)
+            proj += coeff * e
+        
+        # proj residual
+        p_res = np.linalg.norm(test_vec_centered - proj) ** 2
+
+        return p_res
 
     def img_ds(self, img_arr, factor=4):
         # downsample by factor
@@ -135,13 +178,15 @@ class EigenFaces:
             Object containing eigenfaces and residuals for both subjects.
         """
         # get eigenfaces
-        eigenfaces_1 = self.calc_eigenfaces()
+        eigenfaces_1, avg_face_1, eigenvecs_1 = self.calc_eigenfaces(self.subject_1_tr_images)
+        eigenfaces_2, avg_face_2, eigenvecs_2 = self.calc_eigenfaces(self.subject_2_tr_images)
 
+        # proj residuals part of return
         return EigenFacesResult(
             subject_1_eigen_faces=eigenfaces_1,
             subject_2_eigen_faces=eigenfaces_2,
-            s11=projection_residual_s11,
-            s12=projection_residual_s12,
-            s21=projection_residual_s21,
-            s22=projection_residual_s22
+            s11=self.proj_res(self.subject_1_te_image, eigenvecs_1, avg_face_1),
+            s12=self.proj_res(self.subject_2_te_image, eigenvecs_1, avg_face_1),
+            s21=self.proj_res(self.subject_1_te_image, eigenvecs_2, avg_face_2),
+            s22=self.proj_res(self.subject_2_te_image, eigenvecs_2, avg_face_2)
         )
