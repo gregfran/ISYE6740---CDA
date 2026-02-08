@@ -111,6 +111,12 @@ def isomap_scat(embedding, data):
                     extent=(x_l, x_r, y_b, y_t),
                     cmap='gray',
                     zorder=10)
+            
+            # coord labels for samples
+            ax.text(x0, y_b + 1, f'({x0:.1f}, {y0:.1f})',
+            ha='center', va='top', fontsize=6,
+            color='red', fontweight='bold',
+            zorder=11)
             s += 1
         if s >= n_samples:
             break
@@ -176,6 +182,13 @@ def pca_scat(pca_result, data):
                     extent=(x_l, x_r, y_b, y_t),
                     cmap='gray',
                     zorder=10)
+            
+            # coord labels for samples
+            ax.text(x0, y_b + 1, f'({x0:.1f}, {y0:.1f})',
+            ha='center', va='top', fontsize=6,
+            color='red', fontweight='bold',
+            zorder=11)
+
             s += 1
         if s >= n_samples:
             break
