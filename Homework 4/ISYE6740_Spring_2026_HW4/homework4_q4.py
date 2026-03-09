@@ -32,8 +32,8 @@ def load_data():
 def decision_boundary(model, X, y, ax, title):
     # mesh grid for plot
     # get the limits of data for plotting
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 5 # 5 for padding
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 5 
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1 # 1 for padding
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1 
     # mesh
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300),
                          np.linspace(y_min, y_max, 300))
@@ -126,7 +126,7 @@ def main():
     # --> q1 results
     q1_res = pd.DataFrame({
         'Method': ['Naive Bayes', 'Logistic Regression', f'KNN (k={top_k})'],
-        'Accuracy': [f"{nb_acc:.2f}", f"{lr_acc:.2f}", f"{knn_acc:.2f}"],
+        'Accuracy': [f"{nb_acc:.4f}", f"{lr_acc:.4f}", f"{knn_acc:.4f}"],
     })
     q1_res.to_csv('results/class_model_comp.csv', index=False)
 
@@ -174,7 +174,7 @@ def main():
     # --> q2 results
     q2_res = pd.DataFrame({
         'Method': ['Naive Bayes', 'Logistic Regression', f'KNN (k={top_k_pca})'],
-        'Accuracy': [f"{nb_pca_acc:.2f}", f"{lr_pca_acc:.2f}", f"{knn_pca_acc:.2f}"],
+        'Accuracy': [f"{nb_pca_acc:.4f}", f"{lr_pca_acc:.4f}", f"{knn_pca_acc:.4f}"],
     })
     q2_res.to_csv('results/class_model_comp_pca.csv', index=False)
 
@@ -183,13 +183,22 @@ def main():
     y_all = np.concatenate([y_train, y_test])
 
     # decision boundary
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    decision_boundary(nb_pca, X_pca_all, y_all, axes[0], 'Naive Bayes (PCA)')
-    decision_boundary(lr_pca, X_pca_all, y_all, axes[1], 'Log Regression (PCA)')
-    decision_boundary(knn_pca, X_pca_all, y_all, axes[2], f'KNN (k={top_k_pca}) (PCA)')
-
+    fig1, ax1 = plt.subplots(figsize=(8, 6))
+    decision_boundary(nb_pca, X_pca_all, y_all, ax1, f'Naive Bayes PCA')
     plt.tight_layout()
-    plt.savefig('results/dboundaries_pca.png')
+    plt.savefig('results/db_nb_pca.png')
+    plt.show()
+
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    decision_boundary(lr_pca, X_pca_all, y_all, ax2, f'Logistic Regression PCA')
+    plt.tight_layout()
+    plt.savefig('results/db_lr_pca.png')
+    plt.show()
+
+    fig3, ax3 = plt.subplots(figsize=(8, 6))
+    decision_boundary(knn_pca, X_pca_all, y_all, ax3, f'KNN k={top_k_pca} PCA')
+    plt.tight_layout()
+    plt.savefig('results/db_knn_pca.png')
     plt.show()
 
     pass
