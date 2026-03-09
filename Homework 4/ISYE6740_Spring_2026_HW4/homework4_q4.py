@@ -126,7 +126,7 @@ def main():
     # --> q1 results
     q1_res = pd.DataFrame({
         'Method': ['Naive Bayes', 'Logistic Regression', f'KNN (k={top_k})'],
-        'Accuracy': [nb_acc, lr_acc, knn_acc],
+        'Accuracy': [f"{nb_acc:.2f}", f"{lr_acc:.2f}", f"{knn_acc:.2f}"],
     })
     q1_res.to_csv('results/class_model_comp.csv', index=False)
 
@@ -174,7 +174,7 @@ def main():
     # --> q2 results
     q2_res = pd.DataFrame({
         'Method': ['Naive Bayes', 'Logistic Regression', f'KNN (k={top_k_pca})'],
-        'Accuracy': [nb_pca_acc, lr_pca_acc, knn_pca_acc],
+        'Accuracy': [f"{nb_pca_acc:.2f}", f"{lr_pca_acc:.2f}", f"{knn_pca_acc:.2f}"],
     })
     q2_res.to_csv('results/class_model_comp_pca.csv', index=False)
 
