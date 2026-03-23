@@ -103,21 +103,23 @@ def model_runner(xtrain, xtest, ytrain, ytest, d_name):
 
     model_results = []
 
+    print("Running LogReg")
     # logreg
     log_reg = LogReg(
         random_state=6740,
         max_iter=1000,
-        solver="lbfgs",
-        multi_class="auto"
+        solver="lbfgs"
     )
     model_results.append(evaluate_model(log_reg, xtrain, ytrain, xtest, ytest, "LogReg", d_name))
 
+    print("Running KNN")
     # knn
     k_values = range(1, 20, 2) # odd vals from 1 to 19 
     best_k, best_acc, _ = knn_tuner(xtrain, ytrain, xtest, ytest, k_values)
     knn = KNN(n_neighbors=best_k)
     model_results.append(evaluate_model(knn, xtrain, ytrain, xtest, ytest, f'KNN (k={best_k})', d_name))
 
+    print("Running NN")
     # NN
     neural_net = NN(
         hidden_layer_sizes=(20, 10),
@@ -126,17 +128,20 @@ def model_runner(xtrain, xtest, ytrain, ytest, d_name):
     )
     model_results.append(evaluate_model(neural_net, xtrain, ytrain, xtest, ytest, "NN (20,10)", d_name))
 
+    print("Running SVM")
     # svm
     ran_state = np.random.default_rng(6740)
     ran_idx = ran_state.choice(len(xtrain), size=5000, replace=False)
     ran_xtrain = xtrain[ran_idx]
     ran_ytrain = ytrain[ran_idx]
 
+    print("Running SVM (linear)")
         # linear
     svm_linear = SVC(kernel="linear", random_state=6740)
     model_results.append(evaluate_model(svm_linear, ran_xtrain, ran_ytrain, xtest, ytest, "SVM (linear)", d_name))
 
-        # rbf kernel
+    print("Running SVM (rbf)")
+        # kernel
     svm_rbf = SVC(kernel="rbf", random_state=6740)
     model_results.append(evaluate_model(svm_rbf, ran_xtrain, ran_ytrain, xtest, ytest, "SVM (rbf)", d_name))
 
@@ -153,11 +158,13 @@ def main():
 
     for d_name in ["digits", "fashion"]:
         xtrain, ytrain, xtest, ytest = load_data(d_name)
+        print(f"running for {d_name}")
         results = model_runner(xtrain, xtest, ytrain, ytest, d_name)
         res_df = pd.DataFrame(results)
         res_df.to_csv(f'results/model_res_{d_name}.csv', index=False)
 
 
+    print("Done")
     pass
 
 if __name__ == "__main__":
